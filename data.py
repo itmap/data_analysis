@@ -3,7 +3,7 @@ import json
 
 from pymongo import MongoClient
 
-client = MongoClient('localhost',27017)
+client = MongoClient('mongo',27017)
 db = client.data
 
 with open('/home/ubuntu/workspace/spiders/logs/juejin/info.log', 'r') as f:
