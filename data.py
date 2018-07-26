@@ -14,5 +14,5 @@ for fl in files:
             index = data['index']
             table = db[index]
             doc_id = data['document_id']
-            table.update({'document_id':doc_id},data,{'upsert': True})
+            table.update({'document_id': doc_id}, data, upsert=True)
             line = f.readline()
