@@ -10,6 +10,9 @@ services:
       - "${PWD}:/service"
     ports:
       - "8000:8010"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: Song123654
     networks:
       - nlp-network
 

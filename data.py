@@ -1,9 +1,13 @@
 import pymongo
 import json
+import os
 
 from pymongo import MongoClient
 
-client = MongoClient('mongo',27017)
+
+user = os.environ.get('MONGO_INITDB_ROOT_USERNAME', 'root')
+password = os.environ.get('MONGO_INITDB_ROOT_PASSWORD', 'root')
+client = MongoClient('mongo', 27017, username=user, password=password)
 db = client.data
 files = ['juejin.log']
 for fl in files:
