@@ -2,6 +2,17 @@ version: '3.1'
 
 services:
 
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - "${PWD}:/service"
+    ports:
+      - "8000:8010"
+    networks:
+      - nlp-network
+
   mongo:
     image: mongo
     container_name: mongo
