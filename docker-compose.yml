@@ -6,7 +6,7 @@ services:
     image: mongo
     container_name: mongo
     volumes:
-      - ${PWD}/datadir:/data/db
+      - ${HOME}/datadir:/data/db
     networks:
       - nlp-network
     environment:
