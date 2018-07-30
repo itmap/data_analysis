@@ -21,15 +21,23 @@ print('corpos: {}'.format(corpos))
 segments = []
 indexs = []
 
+#移除停用词
+stopwords = pandas.read_csv(
+    'stopword.txt',
+    encoding='utf8',
+    index_col=False
+)
+
 for index, row in corpos.iterrows():
     ind = row['indexs']
     body = row['bodies']
     segs = jieba.cut(body)
     for seg in segs:
-        segments.append(seg)
-        indexs.append(ind)
+        if seg not in stopwords.stopword.values and len(seg.strip())>0:
+            segments.append(seg)
+            indexs.append(ind)
 
- 
+print('segments len: ', len(segments))
 segmentDataFrame = pandas.DataFrame({
     'segment': segments, 
     'indexs': indexs
@@ -48,13 +56,6 @@ segStat = segmentDataFrame.groupby(
 print('segStat: {}'.format(segStat))
 
 """排在前面的为停用词"""
-
-#移除停用词
-stopwords = pandas.read_csv(
-    'stopword.txt',
-    encoding='utf8',
-    index_col=False
-)
 
 #获得没有停用词的词频统计结果
 fSegStat = segStat[
