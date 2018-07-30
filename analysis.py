@@ -7,14 +7,16 @@ from settings import db
 collection = db['article-juejin']
 indexs, bodies = [], []
 for data in collection.find():
+    print('document_id: {}'.format(data['document_id']))
     indexs.append(data['document_id'])
     bodies.append(data['body'])
+
 
 corpos = pandas.DataFrame({
     'indexs': indexs, 
     'bodies': bodies
 });
-
+print('corpos: {}'.format(corpos))
 
 segments = []
 indexs = []
@@ -32,6 +34,7 @@ segmentDataFrame = pandas.DataFrame({
     'segment': segments, 
     'indexs': indexs
 })
+print('segmentDataFrame: {}'.format(segmentDataFrame))
 
 #进行词频统计  
 segStat = segmentDataFrame.groupby(
@@ -42,6 +45,7 @@ segStat = segmentDataFrame.groupby(
     by=[u'计数'],
     ascending=False  #倒序排序
 )
+print('segStat: {}'.format(segStat))
 
 """排在前面的为停用词"""
 
