@@ -1,0 +1,37 @@
+import click
+import jieba
+import pandas
+
+from settings import db
+
+handlers = ['jieba']
+
+
+def handler_jieba_word_segmentation():
+    collection = db['article-juejin']
+    #移除停用词
+    stopwords = pandas.read_csv(
+        'stopword.txt',
+        encoding='utf8',
+        index_col=False,
+        sep=None,
+    )
+
+    for data in collection.find():
+        body = data['body']
+        doc_id = data['document_id']
+        segs = jieba.cut(body)
+        data = {
+            '$set': {
+                'jieba_word_segmentation': [s for s in segs
+                    if s not in stopwords.stopwords.values and len(s.strip())>0]
+            }
+        }
+        collection.update_one({'document_id': doc_id}, data, upsert=True)
+
+@click.command()
+@click.option('--handler', '-h', type=click.Choice(handlers), multiple=True)
+def segmentation(handler):
+    h = handler if handler else handlers
+    if 'jieba' in h:
+        handler_jieba_word_segmentation()

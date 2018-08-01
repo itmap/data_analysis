@@ -7,7 +7,6 @@ from settings import db
 collection = db['article-juejin']
 indexs, bodies = [], []
 for data in collection.find():
-    print('document_id: {}'.format(data['document_id']))
     indexs.append(data['document_id'])
     bodies.append(data['body'])
 
@@ -25,7 +24,8 @@ indexs = []
 stopwords = pandas.read_csv(
     'stopword.txt',
     encoding='utf8',
-    index_col=False
+    index_col=False,
+    sep=None,
 )
 
 for index, row in corpos.iterrows():
@@ -33,7 +33,7 @@ for index, row in corpos.iterrows():
     body = row['bodies']
     segs = jieba.cut(body)
     for seg in segs:
-        if seg not in stopwords.stopword.values and len(seg.strip())>0:
+        if seg not in stopwords.stopwords.values and len(seg.strip())>0:
             segments.append(seg)
             indexs.append(ind)
 
