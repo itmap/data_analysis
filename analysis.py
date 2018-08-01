@@ -26,6 +26,9 @@ stopwords = pandas.read_csv(
     encoding='utf8',
     index_col=False,
     sep=None,
+    error_bad_lines=False,
+    header=None,
+    names=['stopword'],
 )
 
 for index, row in corpos.iterrows():

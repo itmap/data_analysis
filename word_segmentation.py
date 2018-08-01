@@ -3,6 +3,7 @@ import jieba
 import pandas
 
 from settings import db
+from stopwords import stopwords
 
 handlers = ['jieba']
 
@@ -10,12 +11,6 @@ handlers = ['jieba']
 def handler_jieba_word_segmentation():
     collection = db['article-juejin']
     #移除停用词
-    stopwords = pandas.read_csv(
-        'stopword.txt',
-        encoding='utf8',
-        index_col=False,
-        sep=None,
-    )
 
     for data in collection.find():
         body = data['body']
