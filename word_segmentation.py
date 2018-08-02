@@ -19,7 +19,7 @@ def handler_jieba_word_segmentation():
         data = {
             '$set': {
                 'jieba_word_segmentation': [s for s in segs
-                    if s not in stopwords.stopwords.values and len(s.strip())>0]
+                    if s not in stopwords.stopword.values and len(s.strip())>0]
             }
         }
         collection.update_one({'document_id': doc_id}, data, upsert=True)
