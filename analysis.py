@@ -36,7 +36,7 @@ for index, row in corpos.iterrows():
     body = row['bodies']
     segs = jieba.cut(body)
     for seg in segs:
-        if seg not in stopwords.stopwords.values and len(seg.strip())>0:
+        if seg not in stopwords.stopword.values and len(seg.strip())>0:
             segments.append(seg)
             indexs.append(ind)
 

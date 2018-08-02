@@ -8,5 +8,6 @@ stopwords = pandas.read_csv(
     sep=None,
     error_bad_lines=False,
     header=None,
+    engine='python',
     names=['stopword'],
 )
