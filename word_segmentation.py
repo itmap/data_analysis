@@ -1,6 +1,5 @@
 import click
 import jieba
-import pandas
 
 from settings import db
 from stopwords import stopwords
