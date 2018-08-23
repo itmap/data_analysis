@@ -125,6 +125,7 @@ def get_first_n_word(collection_name, doc_id, limit=3):
 collections = ['article-cnblogs', 'article-juejin', 'article-csdn']
 actions = ['segment', 'calculate_idf', 'calculate_tf_idf']
 
+
 @click.command()
 @click.option('--collection', type=click.Choice(collections), help='mongo中的collection名')
 @click.option('--action', type=click.Choice(actions), help='可执行动作')
@@ -152,6 +153,7 @@ def entrance(collection, action):
                 msg=message,
                 routing_key=action,
             )
+
 
 action_map_func = {
     'segment': segment_word,
