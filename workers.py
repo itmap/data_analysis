@@ -1,14 +1,16 @@
 import click
 import logging
 import jieba
+import json
 import math
 
 from collections import defaultdict
 from decimal import Decimal
+from multiprocessing import Process
 from settings import db
 from stopwords import stopwords
 
-from pub_sub import publish
+from pub_sub import publish, subscribe
 
 values = stopwords.stopword.values
 juejin_count = 4981
@@ -30,7 +32,7 @@ def find_infos(collection_name, condition):
     return collection, doc
 
 
-def word_segmentation(collection_name, doc_id):
+def segment_word(collection_name, doc_id):
     condition = {'document_id': doc_id}
     collection, doc = find_infos(collection_name, condition)
 
@@ -127,6 +129,7 @@ actions = ['segment', 'calculate_idf', 'calculate_tf_idf']
 @click.option('--collection', type=click.Choice(collections), help='mongo中的collection名')
 @click.option('--action', type=click.Choice(actions), help='可执行动作')
 def entrance(collection, action):
+    """开始任务"""
     if action == 'calculate_idf':
         cols = ['TF']
     else:
@@ -150,3 +153,45 @@ def entrance(collection, action):
                 routing_key=action,
             )
 
+action_map_func = {
+    'segment': segment_word,
+    'calculate_tf': calculate_tf,
+    'calculate_idf': calculate_idf,
+    'calculate_tf_idf': calculate_tf_idf,
+}
+
+
+def on_message_func(ch, method, properties, body):
+    body = json.loads(body)
+    action_map_func[method.routing_key](**body)
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+
+
+@click.command()
+def start_rabbit_workers():
+    """启动兔子工人"""
+
+    def run_rabbit(cfg):
+        subscribe(**cfg)
+
+    pool = []
+    try:
+        for action in actions:
+            config = {
+                'exchange_name': 'data_analysis',
+                'exchange_type': 'direct',
+                'queue_name': action,
+                'routing_key': action,
+                'func': on_message_func,
+                'exclusive': False,
+                'durable': True,
+                'prefetch_count': 1,
+                'no_ack': False,
+            }
+            p = Process(run_rabbit, args=(config,))
+            p.start()
+            pool.append(p)
+        for p in pool:
+            p.join()
+    except KeyboardInterrupt:
+        pass
