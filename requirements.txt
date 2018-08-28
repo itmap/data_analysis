@@ -1,5 +1,4 @@
 pymongo
 click==6.7
 jieba
-pandas
 pika
