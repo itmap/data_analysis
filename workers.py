@@ -49,7 +49,7 @@ def segment_word(collection_name, doc_id):
     }
     publish(
         exchange_name='data_analysis',
-        msg=message,
+        body=message,
         routing_key='calculate_tf',
     )
 
@@ -65,7 +65,7 @@ def calculate_tf(collection_name, doc_id):
     word_list = [word for word in words.split() if check_word(word)]
     word_dict = defaultdict(int)
     for word in word_list:
-        word_dict['word'] += 1
+        word_dict[word] += 1
 
     tf_collection = db['TF']
     for word, count in word_dict.items():
@@ -98,12 +98,14 @@ def calculate_tf_idf(collection_name, doc_id):
     if words is None:
         return
 
-    word_list = list(set([word for word in words.split() if check_word(word)]))
+    word_list = [word for word in words.split() if check_word(word)]
+    word_count = len(word_list)
+    word_list = list(set(word_list))
     tf_collection = db['TF']
     tf_idf_doc = {'index': collection_name}
     for word in word_list:
         tf = tf_collection.find_one({'word': word}) or {}
-        tf_idf = tf.get(doc_id, 0) * tf.get('idf', 0)
+        tf_idf = tf.get(doc_id, 0) * tf.get('idf', 0) / word_count
         tf_idf_doc.update({
             word: tf_idf,
         })
@@ -150,7 +152,7 @@ def entrance(collection, action):
                 }
             publish(
                 exchange_name='data_analysis',
-                msg=message,
+                body=message,
                 routing_key=action,
             )
 
