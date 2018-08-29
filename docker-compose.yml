@@ -8,14 +8,31 @@ services:
       dockerfile: Dockerfile
     volumes:
       - "${PWD}:/service"
-    ports:
-      - "8000:8010"
     environment:
       MONGO_INITDB_HOST: mongo
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: Song123654
     networks:
       - nlp-network
+    depends_on:
+        - mongo
+        - rabbit
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - "${PWD}:/service"
+    environment:
+      MONGO_INITDB_HOST: mongo
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: Song123654
+    networks:
+      - nlp-network
+    depends_on:
+        - mongo
+        - rabbit
 
   mongo:
     image: mongo
@@ -45,6 +62,15 @@ services:
       ME_CONFIG_BASICAUTH_PASSWORD: qazwsx123
     depends_on:
       - mongo
+
+  rabbit:
+    image: rabbitmq:3-management
+    container_name: rabbit
+    ports:
+        - "5672:5672"
+        - "15672:15672"
+    networks:
+        - nlp-network
 
 networks:
   nlp-network:
