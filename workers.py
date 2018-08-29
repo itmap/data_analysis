@@ -7,7 +7,7 @@ import math
 from collections import defaultdict
 from decimal import Decimal
 from multiprocessing import Process
-from settings import db
+from settings import db, collections
 from stopwords import stopwords
 
 from pub_sub import publish, subscribe
@@ -122,7 +122,6 @@ def get_first_n_word(collection_name, doc_id, limit=3):
     return result
 
 
-collections = ['article-cnblogs', 'article-juejin', 'article-csdn']
 actions = ['segment', 'calculate_idf', 'calculate_tf_idf']
 
 

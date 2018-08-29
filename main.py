@@ -1,6 +1,6 @@
 import click
 
-from word_segmentation import segmentation
+from word_segment import segmentation
 from workers import entrance, start_rabbit_workers
 
 
