@@ -129,7 +129,7 @@ def get_first_n_word(collection_name, doc_id, limit=3):
 
 
 collections = ['article-cnblogs', 'article-juejin', 'article-csdn']
-actions = ['segment', 'calculate_idf', 'calculate_tf_idf']
+actions = ['segment', 'calculate_tf', 'calculate_idf', 'calculate_tf_idf']
 
 
 @click.command()
