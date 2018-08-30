@@ -5,14 +5,18 @@ import json
 import math
 
 from collections import defaultdict
-from decimal import Decimal
 from multiprocessing import Process
 from settings import db
-from stopwords import stopwords
+#from stopwords import stopwords
 
 from pub_sub import publish, subscribe
 
-values = stopwords.stopword.values
+#values = stopwords.stopword.values
+words = []
+with open('stopword.txt', 'r') as f:
+    words = f.readlines()
+stopwords = [s.strip() for s in words]
+
 juejin_count = 4981
 cnblogs_count = 28618
 csdn_count = 275742
@@ -40,7 +44,7 @@ def segment_word(collection_name, doc_id):
         doc.pop('words')
 
     body = doc['body']
-    doc['words'] = ' '.join([s for s in jieba.cut(body) if s not in values and check_word(s)])
+    doc['words'] = ' '.join([s for s in jieba.cut(body) if s not in stopwords and check_word(s)])
     collection.update_one(condition, {'$set': doc})
     logger.info('Segmenting: {}'.format(doc_id))
     message = {
