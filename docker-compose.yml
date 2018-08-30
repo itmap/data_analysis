@@ -17,6 +17,8 @@ services:
     depends_on:
         - mongo
         - rabbit
+    command:
+        python main.py entrance --action segment --collection article-csdn
 
   worker:
     build:
@@ -33,6 +35,8 @@ services:
     depends_on:
         - mongo
         - rabbit
+    command:
+        python main.py start_rabbit_workers
 
   mongo:
     image: mongo

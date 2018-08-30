@@ -192,9 +192,10 @@ def start_rabbit_workers():
                 'prefetch_count': 1,
                 'no_ack': False,
             }
-            p = Process(run_rabbit, args=(config,))
+            p = Process(group=None, target=run_rabbit, args=(config,))
             p.start()
             pool.append(p)
+            logger.info('starting {}...'.format(action))
         for p in pool:
             p.join()
     except KeyboardInterrupt:
