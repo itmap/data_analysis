@@ -176,7 +176,8 @@ def on_message_func(ch, method, properties, body):
 
 
 @click.command()
-def start_rabbit_workers():
+@click.option('--action', type=click.Choice(actions), help='可执行动作')
+def start_rabbit_workers(action):
     """启动兔子工人"""
 
     def run_rabbit(cfg):
@@ -184,7 +185,8 @@ def start_rabbit_workers():
 
     pool = []
     try:
-        for action in actions:
+        total_actions = [action] or actions
+        for action in total_actions:
             config = {
                 'exchange_name': 'data_analysis',
                 'exchange_type': 'direct',
