@@ -41,7 +41,7 @@ def segment_word(collection_name, doc_id):
     collection, doc = find_infos(collection_name, condition)
 
     if doc.get('words', None):
-        doc.pop('words')
+        return
 
     body = doc['body']
     doc['words'] = ' '.join([s for s in jieba.cut(body) if s not in stopwords and check_word(s)])
