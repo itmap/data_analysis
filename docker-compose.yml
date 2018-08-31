@@ -12,13 +12,16 @@ services:
       MONGO_INITDB_HOST: mongo
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: Song123654
+      RABBITMQ_URL: amqp://guest:guest@rabbit:5672/%2F
     networks:
       - nlp-network
     depends_on:
         - mongo
         - rabbit
+    command:
+        python main.py entrance --action segment --collection article-csdn
 
-  worker:
+  segment_worker:
     build:
       context: .
       dockerfile: Dockerfile
@@ -28,11 +31,71 @@ services:
       MONGO_INITDB_HOST: mongo
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: Song123654
+      RABBITMQ_URL: amqp://guest:guest@rabbit:5672/%2F
     networks:
       - nlp-network
     depends_on:
         - mongo
         - rabbit
+    command:
+        python main.py start_rabbit_workers --action segment
+
+  tf_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - "${PWD}:/service"
+    environment:
+      MONGO_INITDB_HOST: mongo
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: Song123654
+      RABBITMQ_URL: amqp://guest:guest@rabbit:5672/%2F
+    networks:
+      - nlp-network
+    depends_on:
+        - mongo
+        - rabbit
+    command:
+        python main.py start_rabbit_workers --action calculate_tf
+
+  idf_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - "${PWD}:/service"
+    environment:
+      MONGO_INITDB_HOST: mongo
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: Song123654
+      RABBITMQ_URL: amqp://guest:guest@rabbit:5672/%2F
+    networks:
+      - nlp-network
+    depends_on:
+        - mongo
+        - rabbit
+    command:
+        python main.py start_rabbit_workers --action calculate_idf
+
+  tf_idf_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - "${PWD}:/service"
+    environment:
+      MONGO_INITDB_HOST: mongo
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: Song123654
+      RABBITMQ_URL: amqp://guest:guest@rabbit:5672/%2F
+    networks:
+      - nlp-network
+    depends_on:
+        - mongo
+        - rabbit
+    command:
+        python main.py start_rabbit_workers --action calculate_tf_idf
 
   mongo:
     image: mongo

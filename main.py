@@ -9,7 +9,7 @@ def clis():
     pass
 
 
-clis.add_command(segmentation)
+#clis.add_command(segmentation)
 clis.add_command(entrance)
 clis.add_command(start_rabbit_workers)
 
