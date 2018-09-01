@@ -6,8 +6,8 @@ import math
 
 from collections import defaultdict
 from multiprocessing import Process
-from settings import db
-#from stopwords import stopwords
+from settings import db, collections
+# from stopwords import stopwords
 
 from pub_sub import publish, subscribe
 
@@ -133,9 +133,7 @@ def get_first_n_word(collection_name, doc_id, limit=3):
     return result
 
 
-collections = ['article-cnblogs', 'article-juejin', 'article-csdn']
 actions = ['segment', 'calculate_tf', 'calculate_idf', 'calculate_tf_idf']
-
 
 @click.command()
 @click.option('--collection', type=click.Choice(collections), help='mongo中的collection名')
