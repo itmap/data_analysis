@@ -40,13 +40,15 @@ def segment_word(collection_name, doc_id):
     condition = {'document_id': doc_id}
     collection, doc = find_infos(collection_name, condition)
 
-    if doc.get('words', None):
+    if doc.get('words', None) is None:
+        body = doc['body']
+        doc['words'] = ' '.join([s for s in jieba.cut(body) if s not in stopwords and check_word(s)])
+        collection.update_one(condition, {'$set': doc})
+        logger.info('Segmenting: {}'.format(doc_id))
+
+    if doc.get('after_tf', None) is None:
         return
 
-    body = doc['body']
-    doc['words'] = ' '.join([s for s in jieba.cut(body) if s not in stopwords and check_word(s)])
-    collection.update_one(condition, {'$set': doc})
-    logger.info('Segmenting: {}'.format(doc_id))
     message = {
         'collection_name': collection_name,
         'doc_id': doc_id,
@@ -73,12 +75,15 @@ def calculate_tf(collection_name, doc_id):
 
     tf_collection = db['TF']
     for word, count in word_dict.items():
-        condition = {'word': word}
-        tf = tf_collection.find_one(condition) or {}
+        tf_condition = {'word': word}
+        tf = tf_collection.find_one(tf_condition) or {}
+        if tf.get(doc_id, None):
+            continue
         tf.update({
             doc_id: count,
         })
-        tf_collection.update_one(condition, {'$set': tf}, upsert=True)
+        tf_collection.update_one(tf_condition, {'$set': tf}, upsert=True)
+    collection.update_one(condition, {'$set': {'after_tf': 1}}, upsert=True)
     logger.info('Calculating TF: {}'.format(doc_id))
 
 
