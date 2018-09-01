@@ -7,6 +7,7 @@ import math
 from collections import defaultdict
 from multiprocessing import Process
 from pub_sub import publish, subscribe
+from pymongo.operations import UpdateOne
 from settings import db, collections
 # from stopwords import stopwords
 from utils import md5
@@ -76,6 +77,7 @@ def calculate_tf(collection_name, doc_id):
         word_dict[word] += 1
 
     tf_collection = db['TF']
+    requests = []
     for word, count in word_dict.items():
         word_md5 = md5(word)
         tf_condition = {'word_md5': word_md5}
@@ -85,7 +87,9 @@ def calculate_tf(collection_name, doc_id):
         tf.update({
             doc_id: count,
         })
-        tf_collection.update_one(tf_condition, {'$set': tf}, upsert=True)
+        requests.append(UpdateOne(tf_condition, {'$set': tf}, upsert=True))
+    if requests:
+        tf_collection.bulk_write(requests)
     collection.update_one(condition, {'$set': {'after_tf': 1}}, upsert=True)
     logger.info('Calculating TF: {}--{}'.format(collection_name, doc_id))
 
