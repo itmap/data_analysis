@@ -6,10 +6,10 @@ import math
 
 from collections import defaultdict
 from multiprocessing import Process
+from pub_sub import publish, subscribe
 from settings import db, collections
 # from stopwords import stopwords
-
-from pub_sub import publish, subscribe
+from utils import md5
 
 #values = stopwords.stopword.values
 words = []
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 def check_word(word):
-    return len(word.strip()) > 0
+    return 0 < len(word.strip()) < 100
 
 
 def find_infos(collection_name, condition):
@@ -77,8 +77,9 @@ def calculate_tf(collection_name, doc_id):
 
     tf_collection = db['TF']
     for word, count in word_dict.items():
-        tf_condition = {'word': word}
-        tf = tf_collection.find_one(tf_condition) or {}
+        word_md5 = md5(word)
+        tf_condition = {'word_md5': word_md5}
+        tf = tf_collection.find_one(tf_condition) or {'word': word, 'word_md5': word_md5}
         if tf.get(doc_id, None):
             continue
         tf.update({
