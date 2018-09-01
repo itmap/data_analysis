@@ -1,8 +1,10 @@
 import click
+import logging
 
-from word_segment import segmentation
+#from word_segment import segmentation
 from workers import entrance, start_rabbit_workers
 
+logging.basicConfig(level=logging.INFO)
 
 @click.group()
 def clis():

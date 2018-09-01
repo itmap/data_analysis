@@ -46,9 +46,11 @@ def segment_word(collection_name, doc_id):
         collection.update_one(condition, {'$set': doc})
         logger.info('Segmenting: {}'.format(doc_id))
 
-    if doc.get('after_tf', None) is None:
+    if doc.get('after_tf', None) is not None:
+        logger.warning('{}--{} already have tf'.format(collection_name, doc_id))
         return
 
+    logger.info('to calculate tf: {}--{}'.format(collection_name, doc_id))
     message = {
         'collection_name': collection_name,
         'doc_id': doc_id,
@@ -84,7 +86,7 @@ def calculate_tf(collection_name, doc_id):
         })
         tf_collection.update_one(tf_condition, {'$set': tf}, upsert=True)
     collection.update_one(condition, {'$set': {'after_tf': 1}}, upsert=True)
-    logger.info('Calculating TF: {}'.format(doc_id))
+    logger.info('Calculating TF: {}--{}'.format(collection_name, doc_id))
 
 
 def calculate_idf(collection_name, word):
@@ -120,7 +122,7 @@ def calculate_tf_idf(collection_name, doc_id):
         })
 
     db['TF_IDF'].update_one(condition, {'$set': tf_idf_doc}, upsert=True)
-    logger.info('Calculating TF*IDF: {}'.format(doc_id))
+    logger.info('Calculating TF*IDF: {}--{}'.format(collection_name, doc_id))
 
 
 def get_first_n_word(collection_name, doc_id, limit=3):
@@ -152,11 +154,13 @@ def entrance(collection, action):
                     'collection_name': collection,
                     'word': doc['word'],
                 }
+                logger.info('{}----{}'.format(collection, doc['word']))
             else:
                 message = {
                     'collection_name': collection,
                     'doc_id': doc['document_id'],
                 }
+                logger.info('{}----{}'.format(collection, doc['document_id']))
             publish(
                 exchange_name='data_analysis',
                 body=message,
@@ -201,11 +205,12 @@ def start_rabbit_workers(action):
                 'prefetch_count': 1,
                 'no_ack': False,
             }
-            p = Process(group=None, target=run_rabbit, args=(config,))
-            p.start()
-            pool.append(p)
+            #p = Process(group=None, target=run_rabbit, args=(config,))
+            #p.start()
+            #pool.append(p)
+            run_rabbit(config)
             logger.info('starting {}...'.format(action))
-        for p in pool:
-            p.join()
+        #for p in pool:
+        #    p.join()
     except KeyboardInterrupt:
         pass
