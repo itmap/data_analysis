@@ -18,7 +18,6 @@ services:
     depends_on:
         - mongo
         - rabbit
-    restart: always
     command:
         python main.py entrance --action segment --collection article-juejin
 
@@ -38,7 +37,6 @@ services:
     depends_on:
         - mongo
         - rabbit
-    restart: always
     command:
         python main.py entrance --action segment --collection article-cnblogs
 
@@ -58,7 +56,6 @@ services:
     depends_on:
         - mongo
         - rabbit
-    restart: always
     command:
         python main.py entrance --action segment --collection article-csdn
 
@@ -78,7 +75,6 @@ services:
     depends_on:
         - mongo
         - rabbit
-    restart: always
     command:
         python main.py bulk_calculate_tf -c article-juejin -c article-cnblogs -c article-csdn
 

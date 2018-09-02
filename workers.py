@@ -110,7 +110,7 @@ def calculate_idf(collection_name, word):
     collection, doc = find_infos(collection_name, condition)
 
     if doc.get('idf', None):
-        doc.pop('idf')
+        return
 
     count = len(doc) - 2 + 1
     collection.update_one(condition, {'$set': {'idf': math.log(all_count / count)}}, upsert=True)
@@ -168,6 +168,8 @@ def entrance(collection, action):
             condition = {'words': None}
         elif action == 'calculate_tf':
             condition = {'after_tf': None}
+        elif action == 'calculate_idf':
+            condition = {'idf': None}
         else:
             condition = {}
         for doc in db[collection].find(condition):
@@ -193,6 +195,7 @@ def entrance(collection, action):
 @click.command()
 @click.option('--collection', '-c', type=click.Choice(collections), multiple=True, help='mongo中的collection名')
 def bulk_calculate_tf(collection):
+    """批量计算TF"""
     condition = {'after_tf': None}
     for c in collection:
         doc_ids = []
@@ -212,6 +215,10 @@ def bulk_calculate_tf(collection):
             else:
                 doc_ids.append(doc['document_id'])
         if doc_ids:
+                message = {
+                    'collection_name': c,
+                    'doc_ids': doc_ids,
+                }
                 logger.info('{}----total {}: {}~{}'.format(collection, len(doc_ids), doc_ids[0], doc_ids[-1]))
                 publish(
                     exchange_name='data_analysis',
