@@ -3,6 +3,7 @@ import logging
 import jieba
 import json
 import math
+import pika
 
 from collections import defaultdict
 from multiprocessing import Process
@@ -70,6 +71,8 @@ def calculate_tf(collection_name, doc_id):
     words = doc.get('words', None)
     if words is None:
         return
+    if doc.get('after_tf', None) is not None:
+        return
 
     word_list = [word for word in words.split() if check_word(word)]
     word_dict = defaultdict(int)
@@ -80,13 +83,12 @@ def calculate_tf(collection_name, doc_id):
     requests = []
     for word, count in word_dict.items():
         word_md5 = md5(word)
-        tf_condition = {'word_md5': word_md5}
-        tf = tf_collection.find_one(tf_condition) or {'word': word, 'word_md5': word_md5}
-        if tf.get(doc_id, None):
-            continue
-        tf.update({
+        tf = {
+            'word': word,
+            'word_md5': word_md5,
             doc_id: count,
-        })
+        }
+        tf_condition = {'word_md5': word_md5}
         requests.append(UpdateOne(tf_condition, {'$set': tf}, upsert=True))
     if requests:
         tf_collection.bulk_write(requests)
@@ -153,7 +155,13 @@ def entrance(collection, action):
         cols = [collection] or collections
     for collection in cols:
         logger.info('begin {} collection: {}...'.format(action, collection))
-        for doc in db[collection].find():
+        if action == 'segemnt':
+            condition = {'words': None}
+        elif action == 'calculate_tf':
+            condition = {'after_tf': None}
+        else:
+            condition = {}
+        for doc in db[collection].find(condition):
             if action == 'calculate_idf':
                 message = {
                     'collection_name': collection,
@@ -184,7 +192,10 @@ action_map_func = {
 def on_message_func(ch, method, properties, body):
     body = json.loads(body)
     action_map_func[method.routing_key](**body)
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+    try:
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+    except pika.exceptions.ConnectionClosed as e:
+        logger.exception(e)
 
 
 @click.command()
