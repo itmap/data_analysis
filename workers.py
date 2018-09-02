@@ -45,55 +45,64 @@ def segment_word(collection_name, doc_id):
     if doc.get('words', None) is None:
         body = doc['body']
         doc['words'] = ' '.join([s for s in jieba.cut(body) if s not in stopwords and check_word(s)])
-        collection.update_one(condition, {'$set': doc})
+        collection.update_one(condition, {'$set': doc}, upsert=True)
         logger.info('Segmenting: {}'.format(doc_id))
 
     if doc.get('after_tf', None) is not None:
         logger.warning('{}--{} already have tf'.format(collection_name, doc_id))
         return
 
-    logger.info('to calculate tf: {}--{}'.format(collection_name, doc_id))
-    message = {
-        'collection_name': collection_name,
-        'doc_id': doc_id,
-    }
-    publish(
-        exchange_name='data_analysis',
-        body=message,
-        routing_key='calculate_tf',
-    )
+#    logger.info('to calculate tf: {}--{}'.format(collection_name, doc_id))
+#    message = {
+#        'collection_name': collection_name,
+#        'doc_id': doc_id,
+#    }
+#    publish(
+#        exchange_name='data_analysis',
+#        body=message,
+#        routing_key='calculate_tf',
+#    )
 
 
-def calculate_tf(collection_name, doc_id):
-    condition = {'document_id': doc_id}
-    collection, doc = find_infos(collection_name, condition)
-
-    words = doc.get('words', None)
-    if words is None:
-        return
-    if doc.get('after_tf', None) is not None:
+def calculate_tf(collection_name, doc_id=None, doc_ids=None):
+    if doc_ids is None:
         return
 
-    word_list = [word for word in words.split() if check_word(word)]
-    word_dict = defaultdict(int)
-    for word in word_list:
-        word_dict[word] += 1
-
-    tf_collection = db['TF']
+    word_dict = defaultdict(lambda: defaultdict(int))
     requests = []
-    for word, count in word_dict.items():
+    for doc_id in doc_ids:
+        condition = {'document_id': doc_id}
+        collection, doc = find_infos(collection_name, condition)
+
+        words = doc.get('words', None)
+        if words is None:
+            continue
+        if doc.get('after_tf', None) is not None:
+            logger.warning('{}--{} already have tf'.format(collection_name, doc_id))
+            continue
+
+        word_list = [word for word in words.split() if check_word(word)]
+        for word in word_list:
+            word_dict[word][doc_id] += 1
+
+        requests.append(UpdateOne(condition, {'$set': {'after_tf': 1}}, upsert=True))
+        logger.info('Calculating TF: {}--{}'.format(collection_name, doc_id))
+    if requests:
+        collection.bulk_write(requests)
+
+    requests = []
+    tf_collection = db['TF']
+    for word, docs in word_dict.items():
         word_md5 = md5(word)
         tf = {
             'word': word,
             'word_md5': word_md5,
-            doc_id: count,
         }
+        tf.update(docs)
         tf_condition = {'word_md5': word_md5}
         requests.append(UpdateOne(tf_condition, {'$set': tf}, upsert=True))
     if requests:
         tf_collection.bulk_write(requests)
-    collection.update_one(condition, {'$set': {'after_tf': 1}}, upsert=True)
-    logger.info('Calculating TF: {}--{}'.format(collection_name, doc_id))
 
 
 def calculate_idf(collection_name, word):
@@ -179,6 +188,36 @@ def entrance(collection, action):
                 body=message,
                 routing_key=action,
             )
+
+
+@click.command()
+@click.option('--collection', '-c', type=click.Choice(collections), multiple=True, help='mongo中的collection名')
+def bulk_calculate_tf(collection):
+    condition = {'after_tf': None}
+    for c in collection:
+        doc_ids = []
+        for index, doc in enumerate(db[c].find(condition)):
+            if index and index % 100 == 0:
+                message = {
+                    'collection_name': c,
+                    'doc_ids': doc_ids,
+                }
+                logger.info('{}----total {}: {}~{}'.format(collection, len(doc_ids), doc_ids[0], doc_ids[-1]))
+                publish(
+                    exchange_name='data_analysis',
+                    body=message,
+                    routing_key='calculate_tf',
+                )
+                doc_ids = []
+            else:
+                doc_ids.append(doc['document_id'])
+        if doc_ids:
+                logger.info('{}----total {}: {}~{}'.format(collection, len(doc_ids), doc_ids[0], doc_ids[-1]))
+                publish(
+                    exchange_name='data_analysis',
+                    body=message,
+                    routing_key='calculate_tf',
+                )
 
 
 action_map_func = {

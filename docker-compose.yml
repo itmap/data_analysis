@@ -62,6 +62,26 @@ services:
     command:
         python main.py entrance --action segment --collection article-csdn
 
+  tf_server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - "${PWD}:/service"
+    environment:
+      MONGO_INITDB_HOST: mongo
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: Song123654
+      RABBITMQ_URL: amqp://guest:guest@rabbit:5672/%2F
+    networks:
+      - nlp-network
+    depends_on:
+        - mongo
+        - rabbit
+    restart: always
+    command:
+        python main.py bulk_calculate_tf -c article-juejin -c article-cnblogs -c article-csdn
+
   segment_worker:
     build:
       context: .
