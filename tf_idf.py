@@ -8,7 +8,7 @@ import time
 
 from collections import defaultdict
 from functools import wraps
-from multiprocessing import Process, Pool
+from multiprocessing import Pool
 from pymongo.operations import UpdateOne
 from settings import get_db
 from tqdm import tqdm
@@ -82,23 +82,12 @@ class TFIDF:
             split_docs = []
             for index, i in enumerate(range(0, length, step)):
                 split_docs.append((index, c_name, docs[i: i + step]))
-#                p.apply_async(self.segment, args=(docs[i: i + step],))
             p.map(self.segment, split_docs)
             p.close()
             p.join()
             del docs
             del split_docs
             print('\n' * (self.cpu_count + 1))
-
-#        processes = []
-#        for i in range(0, length, step):
-#            t = Process(target=self.segment, args=(docs[i: i + step],))
-#            t.daemon = True
-#            processes.append(t)
-#        for t in processes:
-#            t.start()
-#        for t in processes:
-#            t.join()
 
     def segment(self, args):
         index, c_name, docs = args
