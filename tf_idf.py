@@ -235,13 +235,9 @@ class TFIDF:
 
         tf_condition = {'document_id': doc_id}
         tf_return_values = {'_id': 0, 'word': 1, 'tf': 1}
-#        idf_return_values = {'_id': 0, 'idf': 1}
         for tf in db[self.tf_name].find(tf_condition, tf_return_values):
             word = tf['word']
-#            idf_condition = {'word': word}
-#            idf = db[self.idf_name].find_one(idf_condition, idf_return_values) or {}
             tf_idf = tf['tf'] * self.idf_dict.get('word', 0) / word_count
-#            tf_idf = tf['tf'] * idf.get('idf', 0) / word_count
             word_tf_idf.append(
                 (word, tf_idf),
             )
