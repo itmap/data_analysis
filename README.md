@@ -9,6 +9,7 @@ docker配置尽量最大，要小心内存不够
 
 ## Order
 分词 --> 计算TF --> 计算IDF --> 计算TF_IDF
+目前的处理逻辑主要在tf_idf.py中。
 
 
 ## Architecture(DEPRECATED)
