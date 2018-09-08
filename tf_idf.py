@@ -1,4 +1,3 @@
-import click
 import logging
 import jieba
 import math
@@ -58,9 +57,6 @@ class TFIDF:
             'update': 'bulk_write',
             'insert': 'insert_many',
         }
-#        desc = 'Process {}: exec_mongo_crud'.format(os.getpid())
-#        with tqdm(range(0, len(requests), step), desc=desc, ascii=True, position=position, mininterval=1.0) as bar:
-#            for i in bar:
         for i in range(0, len(requests), step):
             self.execute(get_db()[c_name], method_map[exec_type], requests[i: i + step])
         del requests
