@@ -36,6 +36,7 @@ def analysis_data(segment, idf, tfidf, collections):
     )
     if segment:
         tfidf_obj.generate_segment_requests_using_pool()
+#        tfidf_obj.generate_segment_requests()
     if idf:
         tfidf_obj.generate_idf_requests()
     if tfidf:

@@ -10,7 +10,7 @@ from collections import defaultdict
 from functools import wraps
 from multiprocessing import Process, Manager, Pool
 from pymongo.operations import UpdateOne
-from settings import db
+from settings import get_db
 from tqdm import tqdm
 from werkzeug.utils import cached_property
 
@@ -21,6 +21,7 @@ with open('stopword.txt', 'r') as f:
 stopwords = set([s.strip() for s in words])
 
 manager = Manager()
+db = get_db()
 
 
 def check_word(word):
@@ -44,6 +45,7 @@ class TFIDF:
         self.all_count = all_count
         self.tf_name = tf_name
         self.idf_name = idf_name
+        self.cpu_count = os.cpu_count()
         self.create_collection_index()
         self.init_manager()
 
@@ -55,16 +57,17 @@ class TFIDF:
         self.manager_segment_requests = manager.list()
         self.manager_tf_requests = manager.list()
 
-    def execute_mongo_crud(self, c_name, requests, exec_type, step=10000, position=None):
+    def execute_mongo_crud(self, c_name, requests, exec_type, position=None, step=10000):
         """执行mongo CRUD操作"""
         method_map = {
             'update': 'bulk_write',
             'insert': 'insert_many',
         }
-        desc = 'Process {}: exec_mongo_crud'.format(os.getpid())
-        with tqdm(range(0, len(requests), step), desc=desc, ascii=True, position=position, mininterval=1.0) as bar:
-            for i in bar:
-                self.execute(db[c_name], method_map[exec_type], requests[i: i + step])
+#        desc = 'Process {}: exec_mongo_crud'.format(os.getpid())
+#        with tqdm(range(0, len(requests), step), desc=desc, ascii=True, position=position, mininterval=1.0) as bar:
+#            for i in bar:
+        for i in range(0, len(requests), step):
+            self.execute(get_db()[c_name], method_map[exec_type], requests[i: i + step])
         del requests
 
     @staticmethod
@@ -74,14 +77,13 @@ class TFIDF:
     def generate_segment_requests_using_pool(self):
         """使用进程池生成分词"""
         logger.info('----STEP: SEGMENT----')
-        cpu_count = os.cpu_count()
         for c_name in self.collection_names:
             return_values = {'_id': 0, 'document_id': 1, 'body': 1}
             docs = [doc for doc in db[c_name].find({}, return_values)]
             length = len(docs)
-            step = int(length / cpu_count) + 1
+            step = int(length / self.cpu_count) + 1
             step = min(step, 10000)
-            p = Pool(cpu_count)
+            p = Pool(self.cpu_count)
             split_docs = []
             for index, i in enumerate(range(0, length, step)):
                 split_docs.append((index, c_name, docs[i: i + step]))
@@ -91,6 +93,7 @@ class TFIDF:
             p.join()
             del docs
             del split_docs
+            print('\n' * (self.cpu_count + 1))
 
 #        processes = []
 #        for i in range(0, length, step):
@@ -101,7 +104,6 @@ class TFIDF:
 #            t.start()
 #        for t in processes:
 #            t.join()
-#            print('\n' * (cpu_count + 1))
 #            self.execute_mongo_crud(c_name, self.manager_segment_requests, 'update')
 #            self.execute_mongo_crud(self.tf_name, self.manager_tf_requests, 'insert')
 #            self.init_manager()
@@ -197,10 +199,8 @@ class TFIDF:
     def generate_tf_idf_requests(self):
         """计算TF*IDF"""
         logger.info('----STEP: TF*IDF----')
-        requests = []
         for c_name in self.collection_names:
-            requests.extend(self.assemble_tf_idf_docs(c_name))
-            self.execute_mongo_crud(c_name, requests, 'update')
+            self.assemble_tf_idf_docs(c_name)
 
     def assemble_tf_idf_docs(self, c_name):
         requests = []
@@ -216,7 +216,9 @@ class TFIDF:
                     {'$set': {'word_tf_idf': word_tf_idf}},
                     upsert=True,
                 ))
-        return requests
+                if len(requests) == 10000 or index == length - 1:
+                    self.execute_mongo_crud(c_name, requests, 'update')
+                    requests = []
 
     @cached_property
     def idf_dict(self):
