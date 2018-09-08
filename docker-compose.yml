@@ -2,7 +2,7 @@ version: '3.1'
 
 services:
 
-  juejin_server:
+  server:
     build:
       context: .
       dockerfile: Dockerfile
@@ -17,144 +17,8 @@ services:
       - nlp-network
     depends_on:
         - mongo
-        - rabbit
     command:
-        python main.py entrance --action segment --collection article-juejin
-
-  cnblogs_server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - "${PWD}:/service"
-    environment:
-      MONGO_INITDB_HOST: mongo
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: Song123654
-      RABBITMQ_URL: amqp://guest:guest@rabbit:5672/%2F
-    networks:
-      - nlp-network
-    depends_on:
-        - mongo
-        - rabbit
-    command:
-        python main.py entrance --action segment --collection article-cnblogs
-
-  csdn_server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - "${PWD}:/service"
-    environment:
-      MONGO_INITDB_HOST: mongo
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: Song123654
-      RABBITMQ_URL: amqp://guest:guest@rabbit:5672/%2F
-    networks:
-      - nlp-network
-    depends_on:
-        - mongo
-        - rabbit
-    command:
-        python main.py entrance --action segment --collection article-csdn
-
-  tf_server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - "${PWD}:/service"
-    environment:
-      MONGO_INITDB_HOST: mongo
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: Song123654
-      RABBITMQ_URL: amqp://guest:guest@rabbit:5672/%2F
-    networks:
-      - nlp-network
-    depends_on:
-        - mongo
-        - rabbit
-    command:
-        python main.py bulk_calculate_tf -c article-juejin -c article-cnblogs -c article-csdn
-
-  segment_worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - "${PWD}:/service"
-    environment:
-      MONGO_INITDB_HOST: mongo
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: Song123654
-      RABBITMQ_URL: amqp://guest:guest@rabbit:5672/%2F
-    networks:
-      - nlp-network
-    depends_on:
-        - mongo
-        - rabbit
-    restart: always
-    command:
-        python main.py start_rabbit_workers --action segment
-
-  tf_worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - "${PWD}:/service"
-    environment:
-      MONGO_INITDB_HOST: mongo
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: Song123654
-      RABBITMQ_URL: amqp://guest:guest@rabbit:5672/%2F
-    networks:
-      - nlp-network
-    depends_on:
-        - mongo
-        - rabbit
-    restart: always
-    command:
-        python main.py start_rabbit_workers --action calculate_tf
-
-  idf_worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - "${PWD}:/service"
-    environment:
-      MONGO_INITDB_HOST: mongo
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: Song123654
-      RABBITMQ_URL: amqp://guest:guest@rabbit:5672/%2F
-    networks:
-      - nlp-network
-    depends_on:
-        - mongo
-        - rabbit
-    command:
-        python main.py start_rabbit_workers --action calculate_idf
-
-  tf_idf_worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - "${PWD}:/service"
-    environment:
-      MONGO_INITDB_HOST: mongo
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: Song123654
-      RABBITMQ_URL: amqp://guest:guest@rabbit:5672/%2F
-    networks:
-      - nlp-network
-    depends_on:
-        - mongo
-        - rabbit
-    command:
-        python main.py start_rabbit_workers --action calculate_tf_idf
+        python commands.py article-juejin -sit
 
   mongo:
     image: mongo
@@ -168,6 +32,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: Song123654
+    restart: always
 
   mongo-express:
     image: mongo-express
@@ -184,15 +49,16 @@ services:
       ME_CONFIG_BASICAUTH_PASSWORD: qazwsx123
     depends_on:
       - mongo
+    restart: always
 
-  rabbit:
-    image: rabbitmq:3-management
-    container_name: rabbit
-    ports:
-        - "5672:5672"
-        - "15672:15672"
-    networks:
-        - nlp-network
+    #  rabbit:
+    #    image: rabbitmq:3-management
+    #    container_name: rabbit
+    #    ports:
+    #        - "5672:5672"
+    #        - "15672:15672"
+    #    networks:
+    #        - nlp-network
 
 networks:
   nlp-network:

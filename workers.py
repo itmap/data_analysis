@@ -105,16 +105,17 @@ def calculate_tf(collection_name, doc_id=None, doc_ids=None):
         tf_collection.bulk_write(requests)
 
 
-def calculate_idf(collection_name, word):
-    condition = {'word': word}
-    collection, doc = find_infos(collection_name, condition)
-
-    if doc.get('idf', None):
+def calculate_idf(collection_name, word=None, words=None):
+    if words is None:
         return
 
-    count = len(doc) - 2 + 1
-    collection.update_one(condition, {'$set': {'idf': math.log(all_count / count)}}, upsert=True)
-    logger.info('Calculating IDF: {}'.format(word))
+    condition = {'word': {'$in': words}}
+    requests = []
+    for doc in db[collection_name].find(condition):
+        count = len(doc) - 3 + 1
+        requests.append(UpdateOne({'word': doc['word']}, {'$set': {'idf': math.log(all_count / count)}}, upsert=True))
+    db[collection_name].bulk_write(requests)
+    logger.info('Calculating IDF: {}~{}'.format(words[0], words[-1]))
 
 
 def calculate_tf_idf(collection_name, doc_id):
@@ -124,20 +125,23 @@ def calculate_tf_idf(collection_name, doc_id):
     words = doc.get('words', None)
     if words is None:
         return
+    if db['TF_IDF'].find_one(condition):
+        return
 
     word_list = [word for word in words.split() if check_word(word)]
     word_count = len(word_list)
     word_list = list(set(word_list))
     tf_collection = db['TF']
-    tf_idf_doc = {'index': collection_name}
+    word_tf_idf = []
     for word in word_list:
         tf = tf_collection.find_one({'word': word}) or {}
         tf_idf = tf.get(doc_id, 0) * tf.get('idf', 0) / word_count
-        tf_idf_doc.update({
-            word: tf_idf,
-        })
-
-    db['TF_IDF'].update_one(condition, {'$set': tf_idf_doc}, upsert=True)
+        word_tf_idf.append(
+            (word, tf_idf),
+        )
+    word_tf_idf.sort(key=lambda r: r[1], reverse=True)
+    tf_idf_doc = {'index': collection_name, 'word_tf_idf': word_tf_idf}
+    db['TF_IDF'].update_one(condition, {'$set': tf_idf_doc}, upsert=True) # insert
     logger.info('Calculating TF*IDF: {}--{}'.format(collection_name, doc_id))
 
 
@@ -170,21 +174,42 @@ def entrance(collection, action):
             condition = {'after_tf': None}
         elif action == 'calculate_idf':
             condition = {'idf': None}
+            words = []
+            for index, doc in enumerate(db[collection].find(condition, {'word': 1, '_id':0})):
+                if index and index % 1000 == 0:
+                    message = {
+                        'collection_name': collection,
+                        'words': words,
+                    }
+                    logger.info('{}----{}~{}'.format(collection, words[0], words[-1]))
+                    publish(
+                        exchange_name='data_analysis',
+                        body=message,
+                        routing_key=action,
+                    )
+                    words = []
+                else:
+                    words.append(doc['word'])
+            if words:
+                message = {
+                    'collection_name': collection,
+                    'words': words,
+                }
+                logger.info('{}----{}~{}'.format(collection, words[0], words[-1]))
+                publish(
+                    exchange_name='data_analysis',
+                    body=message,
+                    routing_key=action,
+                )
+            return
         else:
             condition = {}
         for doc in db[collection].find(condition):
-            if action == 'calculate_idf':
-                message = {
-                    'collection_name': collection,
-                    'word': doc['word'],
-                }
-                logger.info('{}----{}'.format(collection, doc['word']))
-            else:
-                message = {
-                    'collection_name': collection,
-                    'doc_id': doc['document_id'],
-                }
-                logger.info('{}----{}'.format(collection, doc['document_id']))
+            message = {
+                'collection_name': collection,
+                'doc_id': doc['document_id'],
+            }
+            logger.info('{}----{}'.format(collection, doc['document_id']))
             publish(
                 exchange_name='data_analysis',
                 body=message,
@@ -200,7 +225,7 @@ def bulk_calculate_tf(collection):
     for c in collection:
         doc_ids = []
         for index, doc in enumerate(db[c].find(condition)):
-            if index and index % 100 == 0:
+            if index and index % 1000 == 0:
                 message = {
                     'collection_name': c,
                     'doc_ids': doc_ids,
