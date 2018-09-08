@@ -8,7 +8,7 @@ import time
 
 from collections import defaultdict
 from functools import wraps
-from multiprocessing import Process, Manager, Pool
+from multiprocessing import Process, Pool
 from pymongo.operations import UpdateOne
 from settings import get_db
 from tqdm import tqdm
@@ -20,7 +20,6 @@ with open('stopword.txt', 'r') as f:
     words = f.readlines()
 stopwords = set([s.strip() for s in words])
 
-manager = Manager()
 db = get_db()
 
 
@@ -52,10 +51,6 @@ class TFIDF:
     def create_collection_index(self):
         db[self.tf_name].create_index([('document_id', pymongo.ASCENDING), ('word', pymongo.ASCENDING)], unique=True)
         db[self.idf_name].create_index([('word', pymongo.ASCENDING)], unique=True)
-
-    def init_manager(self):
-        self.manager_segment_requests = manager.list()
-        self.manager_tf_requests = manager.list()
 
     def execute_mongo_crud(self, c_name, requests, exec_type, position=None, step=10000):
         """执行mongo CRUD操作"""
@@ -104,10 +99,7 @@ class TFIDF:
 #            t.start()
 #        for t in processes:
 #            t.join()
-#            self.execute_mongo_crud(c_name, self.manager_segment_requests, 'update')
-#            self.execute_mongo_crud(self.tf_name, self.manager_tf_requests, 'insert')
-#            self.init_manager()
-#
+
     def segment(self, args):
         index, c_name, docs = args
         desc = 'Process {}: segment'.format(os.getpid())
@@ -128,8 +120,6 @@ class TFIDF:
                         'word': word,
                         'tf': tf,
                     })
-#            self.manager_segment_requests.extend(temp1)
-#            self.manager_tf_requests.extend(temp2)
         self.execute_mongo_crud(c_name, segment_requests, 'update', index)
         self.execute_mongo_crud(self.tf_name, tf_requests, 'insert', index)
         del docs
