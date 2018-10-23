@@ -2,7 +2,9 @@ import jieba
 import jieba.analyse
 
 
-from settings import db, collections
+from settings import get_db, collections
+
+db = get_db()
 
 def handler_jieba_text_rank():
     collection = db['article-juejin']
