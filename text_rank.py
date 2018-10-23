@@ -1,3 +1,4 @@
+import click
 import jieba
 import jieba.analyse
 
