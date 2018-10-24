@@ -32,5 +32,5 @@ def handler_jieba_text_rank():
 def textrank(collection):
     h = collection if collection else collections
     print(h)
-    if 'jieba' in h:
+    if 'article-juejin' in h:
         handler_jieba_text_rank()
