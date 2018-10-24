@@ -15,6 +15,7 @@ def handler_jieba_text_rank():
     for data in collection.find():
         body = data['body']
         doc_id = data['document_id']
+        print(doc_id)
         ranks = []
         for x, w in jieba.analyse.textrank(body, topK=30,
             withWeight=True, allowPOS=('ns', 'n')):
